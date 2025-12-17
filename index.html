@@ -1,11 +1,9 @@
-
 <!DOCTYPE html>
 <html>
   <head>
     <title>Redirecting to Naver Form...</title>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <!-- Google Analytics -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-YE02J0GZFP"></script>
     <script>
       window.dataLayer = window.dataLayer || [];
@@ -18,9 +16,12 @@
     <p>SAT 전문가를 만나러 가는 중입니다...</p>
     <script>
       const params = new URLSearchParams(window.location.search);
-      const src = params.get('src') || '';
+      const src = params.get('src') || 'unknown';
 
-      // 네이버 폼 링크 매핑: 작성자별
+      // 아까 만든 구글 앱스 스크립트 주소를 그대로 넣으세요 (새로 만들 필요 없음)
+      const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwQUXxeI3ccikKYZ3oCxTlqFDWzAZlsxJCU5UrzTh_Q4O4zVQ3_fKipqC6vD6mV46QAlA/exec";
+
+      // 네이버 폼 링크 매핑
       const formLinks = {
         writerM: "https://naver.me/5vcNQM5k",
         writerB: "https://naver.me/xoHZaLjZ",
@@ -31,17 +32,11 @@
 
       let formLink = "https://naver.me/defaultForm";
 
-      if (src.includes("writerM")) {
-        formLink = formLinks.writerM;
-      } else if (src.includes("writerB")) {
-        formLink = formLinks.writerB;
-      } else if (src.includes("writerW")) {
-        formLink = formLinks.writerW;  
-      } else if (src.includes("summer")) {
-        formLink = formLinks.summer;
-      } else if (src.includes("writerH")) {
-        formLink = formLinks.writerH;
-      }
+      if (src.includes("writerM")) formLink = formLinks.writerM;
+      else if (src.includes("writerB")) formLink = formLinks.writerB;
+      else if (src.includes("writerW")) formLink = formLinks.writerW;  
+      else if (src.includes("summer")) formLink = formLinks.summer;
+      else if (src.includes("writerH")) formLink = formLinks.writerH;
 
       // GA 이벤트 전송
       gtag('event', 'naver_form_submit', {
@@ -49,10 +44,21 @@
         event_label: src
       });
 
-      // 1.5초 후 리디렉션
+      // [슬랙 전송] 이번엔 type을 'naver_form'으로 보냅니다
+      fetch(GOOGLE_SCRIPT_URL, {
+        method: "POST",
+        mode: "no-cors",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ 
+            src: src, 
+            type: 'naver_form' // 구글 스크립트가 이걸 보고 '네이버 폼'인지 알 수 있음
+        }),
+      }).catch(err => console.log("Slack Alert Error:", err));
+
+      // 1.5초 후 리디렉션 (슬랙 전송 시간 확보)
       setTimeout(() => {
         window.location.href = formLink;
-      }, 1000);
+      }, 1500);
     </script>
   </body>
 </html>
