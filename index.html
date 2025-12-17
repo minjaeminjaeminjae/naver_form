@@ -55,10 +55,10 @@
         }),
       }).catch(err => console.log("Slack Alert Error:", err));
 
-      // 1.5초 후 리디렉션 (슬랙 전송 시간 확보)
+      // 3초 후 리디렉션 (슬랙 전송 시간 확보)
       setTimeout(() => {
         window.location.href = formLink;
-      }, 1500);
+      }, 3000);
     </script>
   </body>
 </html>
