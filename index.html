@@ -18,7 +18,7 @@
       const params = new URLSearchParams(window.location.search);
       const src = params.get('src') || 'unknown';
 
-      // 아까 만든 구글 앱스 스크립트 주소를 그대로 넣으세요 (새로 만들 필요 없음)
+      // 구글 앱스 스크립트 주소 (보내주신 주소 그대로 유지)
       const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxT5fH5Ty-J_VRpQPx62zgqR-NYZFCrxn9c_ocah8ppTJa8EF5tFCj1fBv43Hl1NLa5uw/exec";
 
       // 네이버 폼 링크 매핑
@@ -34,9 +34,14 @@
 
       if (src.includes("writerM")) formLink = formLinks.writerM;
       else if (src.includes("writerB")) formLink = formLinks.writerB;
-      else if (src.includes("writerW")) formLink = formLinks.writerW;  
+      else if (src.includes("writerW")) formLink = formLinks.writerW;   
       else if (src.includes("summer")) formLink = formLinks.summer;
       else if (src.includes("writerH")) formLink = formLinks.writerH;
+
+      // [핵심 추가] 봇/크롤러 감지 필터
+      // 카톡, 슬랙, 페이스북, 구글봇 등이 접속하면 'true'가 됨
+      const userAgent = navigator.userAgent.toLowerCase();
+      const isBot = /bot|crawler|spider|crawling|facebook|kakaotalk|twitter|slack|whatsapp|telegram|naver/.test(userAgent);
 
       // GA 이벤트 전송
       gtag('event', 'naver_form_submit', {
@@ -44,18 +49,22 @@
         event_label: src
       });
 
-      // [슬랙 전송] 이번엔 type을 'naver_form'으로 보냅니다
-      fetch(GOOGLE_SCRIPT_URL, {
-        method: "POST",
-        mode: "no-cors",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
-            src: src, 
-            type: 'naver_form' // 구글 스크립트가 이걸 보고 '네이버 폼'인지 알 수 있음
-        }),
-      }).catch(err => console.log("Slack Alert Error:", err));
+      // [슬랙 전송] 봇이 아닐 때만(!isBot) 실행
+      if (!isBot) {
+          fetch(GOOGLE_SCRIPT_URL, {
+            method: "POST",
+            mode: "no-cors",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ 
+                src: src, 
+                type: 'naver_form' 
+            }),
+          }).catch(err => console.log("Slack Alert Error:", err));
+      } else {
+          console.log("Bot detected. Slack alert skipped.");
+      }
 
-      // 3초 후 리디렉션 (슬랙 전송 시간 확보)
+      // 리디렉션 (3초 설정 유지)
       setTimeout(() => {
         window.location.href = formLink;
       }, 3000);
