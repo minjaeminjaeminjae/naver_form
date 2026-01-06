@@ -13,12 +13,15 @@
     </script>
   </head>
   <body>
-    <p>SAT 전문가를 만나러 가는 중입니다...</p>
+    <p>SuperfastSAT 상담예약 페이지로 이동 중입니다.</p>
     <script>
+      // [알림 스위치] false로 설정하면 슬랙 알림이 가지 않습니다. (다시 켜려면 true로 변경)
+      const SEND_SLACK = false; 
+
       const params = new URLSearchParams(window.location.search);
       const src = params.get('src') || 'unknown';
 
-      // 2. 구글 앱스 스크립트 주소 (보내주신 주소 유지)
+      // 2. 구글 앱스 스크립트 주소 (유지)
       const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxT5fH5Ty-J_VRpQPx62zgqR-NYZFCrxn9c_ocah8ppTJa8EF5tFCj1fBv43Hl1NLa5uw/exec";
 
       // 3. 네이버 폼 링크 매핑
@@ -39,41 +42,35 @@
       else if (src.includes("writerH")) formLink = formLinks.writerH;
 
       // -----------------------------------------------------------
-      // [최종 병기] 봇/중복 차단 필터 적용
+      // [최종 병기] 봇/중복 차단 필터
       // -----------------------------------------------------------
       function shouldSendAlert(src) {
         const ua = navigator.userAgent.toLowerCase();
         
         // 1. [기본 차단] 봇 키워드 + Headless 감지
         if (/bot|crawler|spider|crawling|facebook|kakaotalk|twitter|slack|whatsapp|telegram|naver|headless|lighthouse|google-inspectiontool/.test(ua)) {
-            console.log("🚫 Bot User-Agent detected.");
             return false;
         }
 
         // 2. [강력 차단] WebDriver(자동화 도구) 감지
         if (navigator.webdriver) {
-            console.log("🚫 WebDriver detected.");
             return false;
         }
 
-        // 3. [유령 브라우저 차단] 화면이 없거나 숨겨진 상태(미리보기 봇) 차단
+        // 3. [유령 브라우저 차단]
         if (!window.screen || window.screen.width === 0 || window.screen.height === 0 || document.visibilityState === 'hidden') {
-            console.log("🚫 Hidden/Ghost browser detected.");
             return false;
         }
 
         // 4. [중복 방지] 기억력(LocalStorage) 체크 (10분 쿨타임)
-        // 네이버폼 전용 키(storageKey)를 사용하여 중복 체크
         const storageKey = 'slack_alert_naver_' + src; 
         const lastSent = localStorage.getItem(storageKey);
         const now = new Date().getTime();
 
-        if (lastSent && (now - lastSent < 600000)) { // 10분 이내 재전송 방지
-            console.log("🚫 Duplicate blocked (Sent within 10 mins).");
+        if (lastSent && (now - lastSent < 600000)) { 
             return false;
         }
 
-        // 통과 시 현재 시간 기록
         localStorage.setItem(storageKey, now);
         return true;
       }
@@ -81,15 +78,15 @@
       // 검사 실행
       const isRealUser = shouldSendAlert(src);
 
-      // 4. GA 이벤트 전송
+      // 4. GA 이벤트 전송 (항상 실행됨)
       gtag('event', 'naver_form_submit', {
         event_category: 'BlogToNaverForm',
         event_label: src
       });
 
-      // 5. 슬랙 전송 (진짜 사람일 때만)
-      if (isRealUser) {
-          // 0.5초 딜레이를 주어 순간 스캔 봇 회피
+      // 5. 슬랙 전송 (스위치가 켜져 있고 & 사람일 때만 실행)
+      if (SEND_SLACK && isRealUser) {
+          // 0.5초 딜레이
           setTimeout(() => {
             fetch(GOOGLE_SCRIPT_URL, {
               method: "POST",
@@ -97,15 +94,15 @@
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({ 
                   src: src, 
-                  type: 'naver_form' // 구글 스크립트 구분용
+                  type: 'naver_form' 
               }),
             }).catch(err => console.log("Slack Alert Error:", err));
           }, 500);
       } else {
-          console.log("Slack alert skipped by filter.");
+          console.log("Slack alert is disabled or skipped.");
       }
 
-      // 6. 리디렉션 (3초 후 이동)
+      // 6. 리디렉션 (3초 후 이동 - 항상 실행됨)
       setTimeout(() => {
         window.location.href = formLink;
       }, 3000);
